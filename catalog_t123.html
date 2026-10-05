@@ -173,9 +173,9 @@
     currentPhotos = photos;
 
     if(photos.length){
-      modal.img.src = photos[0];
+      modal.img.src = resized(photos[0]);
       modal.thumbs.innerHTML = photos.length > 1 ? photos.map(function(u, idx){
-        return '<img src="' + esc(u) + '" alt="" data-i="' + idx + '" class="' + (idx===0?'pv-active':'') + '">';
+        return '<img loading="lazy" src="' + esc(resized(u)) + '" alt="" data-i="' + idx + '" class="' + (idx===0?'pv-active':'') + '">';
       }).join('') : '';
     } else {
       modal.img.removeAttribute('src');
@@ -209,7 +209,7 @@
     var t = e.target.closest('img[data-i]');
     if(!t) return;
     var photos = currentPhotos;
-    modal.img.src = photos[+t.dataset.i];
+    modal.img.src = resized(photos[+t.dataset.i]);
     modal.thumbs.querySelectorAll('img').forEach(function(im){ im.classList.remove('pv-active'); });
     t.classList.add('pv-active');
   });
@@ -219,6 +219,12 @@
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape' && !modal.root.hidden) closeModal();
   });
+
+  // Images are expected to be pre-compressed before upload (see photos/README).
+  // Keep this helper so a future image-resizing CDN can be plugged in here.
+  function resized(url){
+    return url;
+  }
 
   function buildFilters(){
     FACET_DEFS.forEach(function(def){
@@ -279,7 +285,7 @@
   function card(item){
     var photo;
     if(item.photos && item.photos.length){
-      photo = '<img loading="lazy" src="' + esc(item.photos[0]) + '" alt="' + esc(item.brand + ' ' + item.model) + '">';
+      photo = '<img loading="lazy" src="' + esc(resized(item.photos[0])) + '" alt="' + esc(item.brand + ' ' + item.model) + '">';
     } else {
       photo = '<div class="pv-noimg">Фото скоро появится</div>';
     }
