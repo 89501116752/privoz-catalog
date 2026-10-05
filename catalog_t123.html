@@ -1,0 +1,368 @@
+<!-- PRIVOZ.AUTO catalog (T123). Paste everything below into a T123 "HTML code" block. -->
+<!-- Data is loaded from an external file (see DATA_URL below), so this block stays under the T123 size limit. -->
+<div id="pv-catalog">
+  <div class="pv-head">
+    <h2 class="pv-title">Каталог автомобилей</h2>
+    <p class="pv-sub">Авто из Японии, Кореи и Китая под ключ</p>
+  </div>
+
+  <div class="pv-controls">
+    <input id="pv-search" class="pv-search" type="search" placeholder="Поиск по марке, модели, комплектации">
+    <div id="pv-filters" class="pv-filters"></div>
+    <div class="pv-price">
+      <label for="pv-price">Цена до: <span id="pv-price-out">любая</span></label>
+      <input id="pv-price" type="range" min="0" max="100" value="100">
+    </div>
+    <button id="pv-reset" class="pv-reset" type="button">Сбросить фильтры</button>
+  </div>
+
+  <div id="pv-count" class="pv-count"></div>
+  <div id="pv-grid" class="pv-grid"></div>
+  <div id="pv-empty" class="pv-empty" hidden>Ничего не найдено. Измените фильтры или сбросьте их.</div>
+
+  <div id="pv-pager" class="pv-pager"></div>
+</div>
+
+<div id="pv-modal" class="pv-modal" hidden>
+  <div class="pv-modal__overlay" data-close></div>
+  <div class="pv-modal__dialog" role="dialog" aria-modal="true" aria-label="Карточка автомобиля">
+    <button class="pv-modal__close" type="button" data-close aria-label="Закрыть">&times;</button>
+    <div class="pv-modal__gallery">
+      <div class="pv-modal__main"><img id="pv-modal-img" alt=""></div>
+      <div id="pv-modal-thumbs" class="pv-modal__thumbs"></div>
+    </div>
+    <div class="pv-modal__info">
+      <h3 id="pv-modal-name" class="pv-modal__name"></h3>
+      <div id="pv-modal-price" class="pv-modal__price"></div>
+      <div id="pv-modal-specs" class="pv-modal__specs"></div>
+      <div id="pv-modal-desc" class="pv-modal__desc"></div>
+      <a class="pv-modal__cta" href="#popup:myform" data-close>Оставить заявку на этот автомобиль</a>
+    </div>
+  </div>
+</div>
+
+<style>
+#pv-catalog{--pv-bg:#ffffff;--pv-ink:#1c1c1c;--pv-muted:#6b6b6b;--pv-line:#e6e1e1;--pv-brand:#4e020d;--pv-accent:#e7082b;--pv-radius:14px;--pv-shadow:0 6px 24px rgba(20,10,10,.08);font-family:'Montserrat',Arial,sans-serif;color:var(--pv-ink);max-width:1200px;margin:0 auto;padding:8px 16px 40px;box-sizing:border-box}
+#pv-catalog *{box-sizing:border-box}
+#pv-catalog .pv-head{text-align:center;margin-bottom:22px}
+#pv-catalog .pv-title{margin:0 0 6px;font-size:34px;line-height:1.2;font-weight:700;color:var(--pv-brand)}
+#pv-catalog .pv-sub{margin:0;color:var(--pv-muted);font-size:16px}
+#pv-catalog .pv-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px}
+#pv-catalog .pv-search{flex:1 1 260px;min-width:220px;padding:12px 14px;border:1px solid var(--pv-line);border-radius:10px;font-size:15px;font-family:inherit}
+#pv-catalog .pv-search:focus{outline:2px solid var(--pv-brand);outline-offset:1px}
+#pv-catalog .pv-filters{display:flex;flex-wrap:wrap;gap:10px}
+#pv-catalog .pv-filters select{padding:11px 34px 11px 12px;border:1px solid var(--pv-line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6b6b'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+#pv-catalog .pv-price{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--pv-muted);min-width:200px}
+#pv-catalog .pv-price input{width:100%;accent-color:var(--pv-brand)}
+#pv-catalog .pv-reset{padding:11px 16px;border:0;border-radius:10px;background:var(--pv-brand);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s}
+#pv-catalog .pv-reset:hover{background:var(--pv-accent)}
+#pv-catalog .pv-count{color:var(--pv-muted);font-size:14px;margin-bottom:16px}
+#pv-catalog .pv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+#pv-catalog .pv-card{background:var(--pv-bg);border:1px solid var(--pv-line);border-radius:var(--pv-radius);overflow:hidden;box-shadow:var(--pv-shadow);display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
+#pv-catalog .pv-card:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(20,10,10,.14)}
+#pv-catalog .pv-photo{position:relative;aspect-ratio:4/3;background:linear-gradient(135deg,#f4eeee,#e9dede);overflow:hidden}
+#pv-catalog .pv-photo img{width:100%;height:100%;object-fit:cover;display:block}
+#pv-catalog .pv-photo .pv-noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b9a5a5;font-size:13px;text-align:center;padding:8px}
+#pv-catalog .pv-badge{position:absolute;top:10px;left:10px;background:var(--pv-brand);color:#fff;font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px}
+#pv-catalog .pv-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+#pv-catalog .pv-name{font-size:17px;font-weight:700;line-height:1.3;margin:0}
+#pv-catalog .pv-trim{font-size:13px;color:var(--pv-muted);margin:0}
+#pv-catalog .pv-specs{display:flex;flex-wrap:wrap;gap:6px}
+#pv-catalog .pv-spec{font-size:12px;color:var(--pv-ink);background:#f6f1f1;border-radius:6px;padding:4px 8px}
+#pv-catalog .pv-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:6px}
+#pv-catalog .pv-price-tag{font-size:19px;font-weight:700;color:var(--pv-brand)}
+#pv-catalog .pv-price-tag.pv-onrequest{font-size:15px;font-weight:600;color:var(--pv-muted)}
+#pv-catalog .pv-btn{padding:10px 14px;border-radius:9px;background:var(--pv-accent);color:#fff;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap;transition:opacity .2s}
+#pv-catalog .pv-btn:hover{opacity:.88}
+#pv-catalog .pv-empty{text-align:center;color:var(--pv-muted);padding:40px 0}
+#pv-catalog .pv-pager{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:26px}
+#pv-catalog .pv-pager button{min-width:40px;height:40px;padding:0 12px;border:1px solid var(--pv-line);background:#fff;border-radius:9px;font-size:14px;font-family:inherit;cursor:pointer;transition:background .15s}
+#pv-catalog .pv-pager button:hover:not(:disabled){background:#f6f1f1}
+#pv-catalog .pv-pager button.pv-active{background:var(--pv-brand);color:#fff;border-color:var(--pv-brand)}
+#pv-catalog .pv-pager button:disabled{opacity:.4;cursor:default}
+@media (max-width:640px){
+  #pv-catalog .pv-title{font-size:26px}
+  #pv-catalog .pv-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+}
+#pv-catalog .pv-card{cursor:pointer}
+#pv-catalog .pv-btn{display:inline-block}
+/* modal */
+.pv-modal{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',Arial,sans-serif}
+.pv-modal[hidden]{display:none}
+.pv-modal__overlay{position:absolute;inset:0;background:rgba(20,5,8,.72);backdrop-filter:blur(3px)}
+.pv-modal__dialog{position:relative;z-index:1;background:#fff;border-radius:16px;max-width:960px;width:calc(100% - 32px);max-height:90vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;box-shadow:0 24px 60px rgba(0,0,0,.35);color:#1c1c1c}
+.pv-modal__close{position:absolute;top:10px;right:12px;z-index:2;width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.92);font-size:24px;line-height:1;cursor:pointer;color:#4e020d}
+.pv-modal__gallery{padding:16px;background:#faf7f7}
+.pv-modal__main{aspect-ratio:4/3;background:#efe6e6;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.pv-modal__main img{width:100%;height:100%;object-fit:cover;display:block}
+.pv-modal__main .pv-noimg{color:#b9a5a5;font-size:14px;text-align:center;padding:16px}
+.pv-modal__thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pv-modal__thumbs img{width:64px;height:48px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;opacity:.75}
+.pv-modal__thumbs img.pv-active{border-color:#4e020d;opacity:1}
+.pv-modal__info{padding:28px 24px 24px;display:flex;flex-direction:column;gap:14px}
+.pv-modal__name{margin:0;font-size:24px;font-weight:700;line-height:1.25;color:#4e020d}
+.pv-modal__price{font-size:24px;font-weight:700;color:#4e020d}
+.pv-modal__price.pv-onrequest{font-size:17px;color:#6b6b6b;font-weight:600}
+.pv-modal__specs{display:flex;flex-wrap:wrap;gap:8px}
+.pv-modal__specs .pv-spec{font-size:13px;background:#f6f1f1;border-radius:6px;padding:5px 10px}
+.pv-modal__desc{font-size:14px;line-height:1.6;color:#444;white-space:pre-line;max-height:180px;overflow:auto}
+.pv-modal__cta{margin-top:auto;display:block;text-align:center;padding:14px 18px;border-radius:10px;background:#e7082b;color:#fff;font-size:15px;font-weight:600;text-decoration:none;transition:opacity .2s}
+.pv-modal__cta:hover{opacity:.88}
+@media (max-width:760px){
+  .pv-modal__dialog{grid-template-columns:1fr;max-height:92vh}
+  .pv-modal__info{padding:20px 18px 22px}
+  .pv-modal__name{font-size:20px}
+}
+</style>
+
+<script>
+(function(){
+  // ==== EDIT THIS: public URL of catalog_data.js ====
+  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@main/catalog_data.js";
+  // ==================================================
+
+  var ITEMS = [], FACETS = {};
+  var PER_PAGE = 12;
+  var state = { q:'', page:1, maxPrice:Infinity, filters:{} };
+
+  var el = {
+    search: document.getElementById('pv-search'),
+    filters: document.getElementById('pv-filters'),
+    price: document.getElementById('pv-price'),
+    priceOut: document.getElementById('pv-price-out'),
+    reset: document.getElementById('pv-reset'),
+    grid: document.getElementById('pv-grid'),
+    count: document.getElementById('pv-count'),
+    empty: document.getElementById('pv-empty'),
+    pager: document.getElementById('pv-pager')
+  };
+
+  var FACET_DEFS = [{"key": "brand", "label": "Марка"}, {"key": "export_country", "label": "Страна"}, {"key": "body_type", "label": "Кузов"}, {"key": "engine_type", "label": "Двигатель"}, {"key": "drive", "label": "Привод"}, {"key": "transmission", "label": "КПП"}, {"key": "steering", "label": "Руль"}];
+
+  function fmt(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function esc(s){ return (s||'').replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function boot(DATA){
+    ITEMS = DATA.items || [];
+    FACETS = DATA.facets || {};
+    buildFilters();
+    render();
+  }
+
+  // ---- modal (car detail) ----
+  var modal = {
+    root: document.getElementById('pv-modal'),
+    img: document.getElementById('pv-modal-img'),
+    thumbs: document.getElementById('pv-modal-thumbs'),
+    name: document.getElementById('pv-modal-name'),
+    price: document.getElementById('pv-modal-price'),
+    specs: document.getElementById('pv-modal-specs'),
+    desc: document.getElementById('pv-modal-desc')
+  };
+  var currentPhotos = [];
+
+  function byId(id){
+    for(var i=0;i<ITEMS.length;i++){ if(ITEMS[i].source_id === id) return ITEMS[i]; }
+    return null;
+  }
+
+  function openModal(id){
+    var item = byId(id);
+    if(!item) return;
+    var photos = item.photos && item.photos.length ? item.photos : [];
+    currentPhotos = photos;
+
+    if(photos.length){
+      modal.img.src = photos[0];
+      modal.thumbs.innerHTML = photos.length > 1 ? photos.map(function(u, idx){
+        return '<img src="' + esc(u) + '" alt="" data-i="' + idx + '" class="' + (idx===0?'pv-active':'') + '">';
+      }).join('') : '';
+    } else {
+      modal.img.removeAttribute('src');
+      modal.img.style.display = 'none';
+      if(!modal.thumbs.dataset.placeholder){
+        modal.thumbs.innerHTML = '<div class="pv-noimg">Фото скоро появятся</div>';
+      }
+    }
+    if(photos.length){ modal.img.style.display = ''; }
+
+    modal.name.textContent = item.brand + ' ' + item.model + (item.trim ? ' — ' + item.trim : '');
+    if(item.price_type === 'from' && item.price_value){
+      modal.price.textContent = 'от ' + fmt(item.price_value) + ' ₽';
+      modal.price.className = 'pv-modal__price';
+    } else {
+      modal.price.textContent = 'Цена по запросу';
+      modal.price.className = 'pv-modal__price pv-onrequest';
+    }
+    modal.specs.innerHTML = specChips(item).map(function(c){ return '<span class="pv-spec">' + esc(c) + '</span>'; }).join('');
+    modal.desc.textContent = item.description || item.short_description || '';
+    modal.root.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(){
+    modal.root.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  modal.thumbs.addEventListener('click', function(e){
+    var t = e.target.closest('img[data-i]');
+    if(!t) return;
+    var photos = currentPhotos;
+    modal.img.src = photos[+t.dataset.i];
+    modal.thumbs.querySelectorAll('img').forEach(function(im){ im.classList.remove('pv-active'); });
+    t.classList.add('pv-active');
+  });
+  modal.root.addEventListener('click', function(e){
+    if(e.target.closest('[data-close]')) closeModal();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !modal.root.hidden) closeModal();
+  });
+
+  function buildFilters(){
+    FACET_DEFS.forEach(function(def){
+      var values = FACETS[def.key] || [];
+      if(!values.length) return;
+      var sel = document.createElement('select');
+      sel.dataset.key = def.key;
+      var opt0 = document.createElement('option');
+      opt0.value = ''; opt0.textContent = def.label + ': все';
+      sel.appendChild(opt0);
+      values.forEach(function(v){
+        var o = document.createElement('option');
+        o.value = v; o.textContent = v;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', function(){
+        state.filters[def.key] = sel.value;
+        state.page = 1;
+        render();
+      });
+      el.filters.appendChild(sel);
+    });
+  }
+
+  function maxPrice(){
+    var vals = ITEMS.map(function(i){ return i.price_value; }).filter(function(v){ return v; });
+    return vals.length ? Math.max.apply(null, vals) : 0;
+  }
+  var PRICE_MAX = maxPrice();
+
+  function matches(item){
+    if(state.q){
+      var hay = [item.brand,item.model,item.trim,item.title].join(' ').toLowerCase();
+      if(hay.indexOf(state.q) === -1) return false;
+    }
+    for(var k in state.filters){
+      if(state.filters[k] && item[k] !== state.filters[k]) return false;
+    }
+    if(state.maxPrice !== Infinity){
+      if(item.price_value === null){ /* on request: keep visible */ }
+      else if(item.price_value > state.maxPrice) return false;
+    }
+    return true;
+  }
+
+  function specChips(item){
+    var chips = [];
+    if(item.year_display) chips.push(item.year_display);
+    if(item.engine_type) chips.push(item.engine_type);
+    if(item.transmission) chips.push(item.transmission);
+    if(item.drive) chips.push(item.drive + ' привод');
+    if(item.displacement_cc && item.engine_type !== 'Электро') chips.push(item.displacement_cc + ' см³');
+    if(item.power_hp) chips.push(item.power_hp + ' л.с.');
+    if(item.export_country) chips.push('Страна: ' + item.export_country);
+    return chips;
+  }
+
+  function card(item){
+    var photo;
+    if(item.photos && item.photos.length){
+      photo = '<img loading="lazy" src="' + esc(item.photos[0]) + '" alt="' + esc(item.brand + ' ' + item.model) + '">';
+    } else {
+      photo = '<div class="pv-noimg">Фото скоро появится</div>';
+    }
+    var price = item.price_type === 'from' && item.price_value
+      ? '<span class="pv-price-tag">от ' + fmt(item.price_value) + ' ₽</span>'
+      : '<span class="pv-price-tag pv-onrequest">Цена по запросу</span>';
+    var chips = specChips(item).map(function(c){ return '<span class="pv-spec">' + esc(c) + '</span>'; }).join('');
+    var name = esc(item.brand + ' ' + item.model);
+    var trim = item.trim ? '<p class="pv-trim">' + esc(item.trim) + '</p>' : '';
+    var action = '<button class="pv-btn" type="button" data-id="' + esc(item.source_id) + '">Смотреть</button>';
+    return '<article class="pv-card" data-id="' + esc(item.source_id) + '">' +
+      '<div class="pv-photo">' + photo + '<span class="pv-badge">' + esc(item.status || 'В наличии') + '</span></div>' +
+      '<div class="pv-body">' +
+        '<h3 class="pv-name">' + name + '</h3>' + trim +
+        '<div class="pv-specs">' + chips + '</div>' +
+        '<div class="pv-foot">' + price + action + '</div>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function render(){
+    var list = ITEMS.filter(matches);
+    var pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+    if(state.page > pages) state.page = pages;
+    var start = (state.page - 1) * PER_PAGE;
+    var slice = list.slice(start, start + PER_PAGE);
+
+    el.grid.innerHTML = slice.map(card).join('');
+    el.empty.hidden = list.length !== 0;
+    el.count.textContent = 'Найдено: ' + list.length + ' из ' + ITEMS.length;
+
+    var pager = '';
+    if(pages > 1){
+      pager += '<button ' + (state.page===1?'disabled':'') + ' data-p="' + (state.page-1) + '">Назад</button>';
+      for(var p=1;p<=pages;p++){
+        if(pages > 7 && p !== 1 && p !== pages && Math.abs(p-state.page) > 1){
+          if(Math.abs(p-state.page) === 2) pager += '<button disabled>...</button>';
+          continue;
+        }
+        pager += '<button class="' + (p===state.page?'pv-active':'') + '" data-p="' + p + '">' + p + '</button>';
+      }
+      pager += '<button ' + (state.page===pages?'disabled':'') + ' data-p="' + (state.page+1) + '">Вперёд</button>';
+    }
+    el.pager.innerHTML = pager;
+  }
+
+  el.search.addEventListener('input', function(){
+    state.q = el.search.value.trim().toLowerCase();
+    state.page = 1; render();
+  });
+  el.price.addEventListener('input', function(){
+    var pct = +el.price.value;
+    if(pct >= 100){ state.maxPrice = Infinity; el.priceOut.textContent = 'любая'; }
+    else { state.maxPrice = Math.round(PRICE_MAX * pct / 100); el.priceOut.textContent = 'до ' + fmt(state.maxPrice) + ' ₽'; }
+    state.page = 1; render();
+  });
+  el.reset.addEventListener('click', function(){
+    state = { q:'', page:1, maxPrice:Infinity, filters:{} };
+    el.search.value = ''; el.price.value = 100; el.priceOut.textContent = 'любая';
+    el.filters.querySelectorAll('select').forEach(function(s){ s.value = ''; });
+    render();
+  });
+  el.pager.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-p]');
+    if(!b || b.disabled) return;
+    state.page = +b.dataset.p; render();
+    el.grid.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  el.grid.addEventListener('click', function(e){
+    var target = e.target.closest('[data-id]');
+    if(!target) return;
+    openModal(target.dataset.id);
+  });
+
+  // Load data from the external file. Falls back to an inline copy if present.
+  if (window.PRIVOZ_CATALOG) {
+    boot(window.PRIVOZ_CATALOG);
+  } else {
+    var s = document.createElement('script');
+    s.src = DATA_URL;
+    s.onload = function(){ boot(window.PRIVOZ_CATALOG || {items:[],facets:{}}); };
+    s.onerror = function(){ el.count.textContent = 'Не удалось загрузить каталог. Проверьте ссылку на данные.'; };
+    document.head.appendChild(s);
+  }
+})();
+</script>
