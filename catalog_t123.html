@@ -42,9 +42,9 @@
 </div>
 
 <style>
-#pv-catalog{--pv-bg:#ffffff;--pv-ink:#1c1c1c;--pv-muted:#6b6b6b;--pv-line:#e6e1e1;--pv-brand:#4e020d;--pv-accent:#e7082b;--pv-radius:14px;--pv-shadow:0 6px 24px rgba(20,10,10,.08);font-family:'Montserrat',Arial,sans-serif;color:var(--pv-ink);max-width:1200px;margin:0 auto;padding:8px 16px 40px;box-sizing:border-box}
+#pv-catalog{--pv-bg:#ffffff;--pv-ink:#1c1c1c;--pv-muted:#6b6b6b;--pv-line:#e6e1e1;--pv-brand:#4e020d;--pv-accent:#e7082b;--pv-radius:14px;--pv-shadow:0 6px 24px rgba(20,10,10,.08);font-family:'Montserrat',Arial,sans-serif;color:var(--pv-ink);max-width:1200px;margin:0 auto;padding:40px 16px 40px;box-sizing:border-box}
 #pv-catalog *{box-sizing:border-box}
-#pv-catalog .pv-head{text-align:center;margin-bottom:22px}
+#pv-catalog .pv-head{text-align:center;margin-bottom:22px;margin-top:0}
 #pv-catalog .pv-title{margin:0 0 6px;font-size:34px;line-height:1.2;font-weight:700;color:var(--pv-brand)}
 #pv-catalog .pv-sub{margin:0;color:var(--pv-muted);font-size:16px}
 #pv-catalog .pv-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px}
@@ -188,7 +188,7 @@
 
     modal.name.textContent = item.brand + ' ' + item.model + (item.trim ? ' — ' + item.trim : '');
     if(item.price_type === 'from' && item.price_value){
-      modal.price.textContent = 'от ' + fmt(item.price_value) + ' ₽';
+      modal.price.textContent = fmt(item.price_value) + ' ₽';
       modal.price.className = 'pv-modal__price';
     } else {
       modal.price.textContent = 'Цена по запросу';
@@ -290,7 +290,7 @@
       photo = '<div class="pv-noimg">Фото скоро появится</div>';
     }
     var price = item.price_type === 'from' && item.price_value
-      ? '<span class="pv-price-tag">от ' + fmt(item.price_value) + ' ₽</span>'
+      ? '<span class="pv-price-tag">' + fmt(item.price_value) + ' ₽</span>'
       : '<span class="pv-price-tag pv-onrequest">Цена по запросу</span>';
     var chips = specChips(item).map(function(c){ return '<span class="pv-spec">' + esc(c) + '</span>'; }).join('');
     var name = esc(item.brand + ' ' + item.model);
