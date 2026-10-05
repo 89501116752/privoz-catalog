@@ -118,7 +118,7 @@
 <script>
 (function(){
   // ==== EDIT THIS: public URL of catalog_data.js ====
-  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@main/catalog_data.js";
+  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@main/catalog_data.js?v=20261005173603";
   // ==================================================
 
   var ITEMS = [], FACETS = {};
@@ -365,7 +365,8 @@
     boot(window.PRIVOZ_CATALOG);
   } else {
     var s = document.createElement('script');
-    s.src = DATA_URL;
+    // Append a per-load cache-buster so the browser never serves a stale catalog.
+    s.src = DATA_URL + (DATA_URL.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
     s.onload = function(){ boot(window.PRIVOZ_CATALOG || {items:[],facets:{}}); };
     s.onerror = function(){ el.count.textContent = 'Не удалось загрузить каталог. Проверьте ссылку на данные.'; };
     document.head.appendChild(s);
