@@ -297,7 +297,7 @@
     var trim = item.trim ? '<p class="pv-trim">' + esc(item.trim) + '</p>' : '';
     var action = '<button class="pv-btn" type="button" data-id="' + esc(item.source_id) + '">Смотреть</button>';
     return '<article class="pv-card" data-id="' + esc(item.source_id) + '">' +
-      '<div class="pv-photo">' + photo + '<span class="pv-badge">' + esc(item.status || 'В наличии') + '</span></div>' +
+      '<div class="pv-photo">' + photo + '<span class="pv-badge">' + esc(item.export_country || '') + '</span></div>' +
       '<div class="pv-body">' +
         '<h3 class="pv-name">' + name + '</h3>' + trim +
         '<div class="pv-specs">' + chips + '</div>' +
