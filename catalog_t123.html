@@ -12,9 +12,15 @@
     <div class="pv-price">
       <label>Цена, ₽</label>
       <div class="pv-price__inputs">
-        <input id="pv-price-from" type="number" min="0" step="50000" placeholder="от">
+        <div class="pv-price__field">
+          <input id="pv-price-from" type="text" inputmode="numeric" autocomplete="off" placeholder="от">
+          <div id="pv-suggest-from" class="pv-suggest" hidden></div>
+        </div>
         <span>—</span>
-        <input id="pv-price-to" type="number" min="0" step="50000" placeholder="до">
+        <div class="pv-price__field">
+          <input id="pv-price-to" type="text" inputmode="numeric" autocomplete="off" placeholder="до">
+          <div id="pv-suggest-to" class="pv-suggest" hidden></div>
+        </div>
       </div>
     </div>
     <button id="pv-reset" class="pv-reset" type="button">Сбросить фильтры</button>
@@ -59,9 +65,13 @@
 #pv-catalog .pv-price{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--pv-muted)}
 #pv-catalog .pv-price__inputs{display:flex;align-items:center;gap:6px}
 #pv-catalog .pv-price__inputs span{color:var(--pv-muted)}
-#pv-catalog .pv-price__inputs input{width:110px;padding:10px 12px;border:1px solid var(--pv-line);border-radius:10px;font-size:14px;font-family:inherit;-moz-appearance:textfield}
-#pv-catalog .pv-price__inputs input::-webkit-outer-spin-button,#pv-catalog .pv-price__inputs input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-#pv-catalog .pv-price__inputs input:focus{outline:2px solid var(--pv-brand);outline-offset:1px}
+#pv-catalog .pv-price__field{position:relative}
+#pv-catalog .pv-price__field input{width:130px;padding:10px 12px;border:1px solid var(--pv-line);border-radius:10px;font-size:14px;font-family:inherit}
+#pv-catalog .pv-price__field input:focus{outline:2px solid var(--pv-brand);outline-offset:1px}
+#pv-catalog .pv-suggest{position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#fff;border:1px solid var(--pv-line);border-radius:10px;box-shadow:0 8px 24px rgba(20,10,10,.12);max-height:220px;overflow:auto;min-width:130px}
+#pv-catalog .pv-suggest[hidden]{display:none}
+#pv-catalog .pv-suggest__item{padding:9px 12px;font-size:14px;color:var(--pv-ink);cursor:pointer;white-space:nowrap}
+#pv-catalog .pv-suggest__item:hover,#pv-catalog .pv-suggest__item.pv-active{background:#f6f1f1}
 #pv-catalog .pv-reset{padding:11px 16px;border:0;border-radius:10px;background:var(--pv-brand);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s}
 #pv-catalog .pv-reset:hover{background:var(--pv-accent)}
 #pv-catalog .pv-count{color:var(--pv-muted);font-size:14px;margin-bottom:16px}
@@ -126,7 +136,7 @@
 <script>
 (function(){
   // ==== EDIT THIS: public URL of catalog_data.js ====
-  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@main/catalog_data.js?v=20261005174131";
+  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@main/catalog_data.js?v=20261005174808";
   // ==================================================
 
   var ITEMS = [], FACETS = {};
@@ -138,6 +148,8 @@
     filters: document.getElementById('pv-filters'),
     priceFrom: document.getElementById('pv-price-from'),
     priceTo: document.getElementById('pv-price-to'),
+    suggestFrom: document.getElementById('pv-suggest-from'),
+    suggestTo: document.getElementById('pv-suggest-to'),
     reset: document.getElementById('pv-reset'),
     grid: document.getElementById('pv-grid'),
     count: document.getElementById('pv-count'),
@@ -346,16 +358,67 @@
     var n = Number(raw.replace(/[^0-9]/g, ''));
     return isNaN(n) ? null : n;
   }
+
+  // Fixed price steps: 500 000 .. 5 000 000.
+  var PRICE_STEP = 500000;
+  var PRICE_MIN = 500000;
+  var PRICE_MAX_SUGGEST = 5000000;
+
+  function suggestionsFor(value){
+    var digits = value.replace(/[^0-9]/g, '');
+    if(!digits) return [];
+    var out = [];
+    for(var v = PRICE_MIN; v <= PRICE_MAX_SUGGEST; v += PRICE_STEP){
+      if(String(v).indexOf(digits) === 0) out.push(v);
+      if(out.length >= 6) break;
+    }
+    return out;
+  }
+
+  function hideSuggest(box){ box.hidden = true; box.innerHTML = ''; }
+
+  function showSuggest(input, box, onPick){
+    var values = suggestionsFor(input.value);
+    if(!values.length){ hideSuggest(box); return; }
+    box.innerHTML = values.map(function(v){
+      return '<div class="pv-suggest__item" data-v="' + v + '">' + fmt(v) + ' ₽</div>';
+    }).join('');
+    box.hidden = false;
+    box.onclick = function(e){
+      var item = e.target.closest('[data-v]');
+      if(!item) return;
+      input.value = fmt(Number(item.dataset.v));
+      hideSuggest(box);
+      onPick();
+    };
+  }
+
+  function wireSuggest(input, box){
+    input.addEventListener('input', function(){
+      // show digits as typed, then suggestions
+      input.value = input.value.replace(/[^0-9]/g, '');
+      showSuggest(input, box, onPriceChange);
+      onPriceChange();
+    });
+    input.addEventListener('focus', function(){
+      if(input.value) showSuggest(input, box, onPriceChange);
+    });
+    input.addEventListener('blur', function(){
+      setTimeout(function(){ hideSuggest(box); }, 150);
+    });
+  }
+
   function onPriceChange(){
     state.priceFrom = readPrice(el.priceFrom);
     state.priceTo = readPrice(el.priceTo);
     state.page = 1; render();
   }
-  el.priceFrom.addEventListener('input', onPriceChange);
-  el.priceTo.addEventListener('input', onPriceChange);
+  wireSuggest(el.priceFrom, el.suggestFrom);
+  wireSuggest(el.priceTo, el.suggestTo);
   el.reset.addEventListener('click', function(){
     state = { q:'', page:1, priceFrom:null, priceTo:null, filters:{} };
     el.search.value = ''; el.priceFrom.value = ''; el.priceTo.value = '';
+    hideSuggest(el.suggestFrom); hideSuggest(el.suggestTo);
     el.filters.querySelectorAll('select').forEach(function(s){ s.value = ''; });
     render();
   });
