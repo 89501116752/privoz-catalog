@@ -136,7 +136,7 @@
 <script>
 (function(){
   // ==== EDIT THIS: public URL of catalog_data.js ====
-  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@v1/catalog_data.js?v=20261009173609";
+  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@v1/catalog_data.js?v=20261009180518";
   // ==================================================
 
   var ITEMS = [], FACETS = {};
@@ -294,6 +294,8 @@
     if(item.drive) chips.push(item.drive + ' привод');
     if(item.displacement_cc && item.engine_type !== 'Электро') chips.push(item.displacement_cc + ' см³');
     if(item.power_hp) chips.push(item.power_hp + ' л.с.');
+    var mileage = String(item.mileage_km || '').replace(/[^0-9]/g, '');
+    if(mileage) chips.push(fmt(parseInt(mileage, 10)) + ' км');
     if(item.export_country) chips.push('Страна: ' + item.export_country);
     return chips;
   }
