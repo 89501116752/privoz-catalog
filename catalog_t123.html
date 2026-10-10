@@ -136,7 +136,7 @@
 <script>
 (function(){
   // ==== EDIT THIS: public URL of catalog_data.js ====
-  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@v1/catalog_data.js?v=20261010154230";
+  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@v1/catalog_data.js?v=20261010160715";
   // ==================================================
 
   var ITEMS = [], FACETS = {};
@@ -246,26 +246,111 @@
     return url;
   }
 
+  // Models are never shown from the static facet: they depend on the chosen brand.
+  var MODEL_LABEL = 'Модель';
+  var modelSelect = null;
+
+  function fillSelect(sel, values, label, selected){
+    sel.innerHTML = '';
+    var opt0 = document.createElement('option');
+    opt0.value = ''; opt0.textContent = label + ': все';
+    sel.appendChild(opt0);
+    values.forEach(function(v){
+      var o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    });
+    // Keep the previous choice only if it is still available.
+    sel.value = (selected && values.indexOf(selected) !== -1) ? selected : '';
+  }
+
+  function brandOptions(){
+    return dedupeByCase(FACETS.brand || []);
+  }
+
+  // Collapse values that differ only in letter case, keeping the first spelling.
+  function dedupeByCase(values){
+    var seen = {};
+    var out = [];
+    values.forEach(function(v){
+      if(!v) return;
+      var key = String(v).trim().toLowerCase();
+      if(!key || seen[key]) return;
+      seen[key] = 1;
+      out.push(String(v).trim());
+    });
+    out.sort(function(a,b){ return a.localeCompare(b, 'ru'); });
+    return out;
+  }
+
+  function modelValuesFor(brand){
+    var seen = {};
+    ITEMS.forEach(function(item){
+      var model = (item.model || '').trim();
+      if(!model) return;
+      if(brand && String(item.brand || '').trim().toLowerCase() !== brand.trim().toLowerCase()) return;
+      var key = model.toLowerCase();
+      if(!seen[key]){
+        seen[key] = model;
+      } else if(uppercaseScore(model) < uppercaseScore(seen[key])){
+        // Prefer the nicer spelling ("Sienta" over "SIENTA").
+        seen[key] = model;
+      }
+    });
+    var out = Object.keys(seen).map(function(k){ return seen[k]; });
+    out.sort(function(a,b){ return a.localeCompare(b, 'ru'); });
+    return out;
+  }
+
+  function uppercaseScore(s){
+    var n = 0;
+    for(var i=0;i<s.length;i++){
+      var c = s.charAt(i);
+      if(c !== c.toLowerCase() && c === c.toUpperCase()) n++;
+    }
+    return n;
+  }
+
+  function refreshModelOptions(){
+    if(!modelSelect) return;
+    var brand = (state.filters.brand || '').trim();
+    var values = modelValuesFor(brand);
+    var chosen = state.filters.model || '';
+    fillSelect(modelSelect, values, MODEL_LABEL, chosen);
+    // Drop a previously chosen model that no longer belongs to the brand.
+    if(chosen && values.indexOf(chosen) === -1){
+      state.filters.model = '';
+      modelSelect.value = '';
+    }
+  }
+
   function buildFilters(){
     FACET_DEFS.forEach(function(def){
-      var values = FACETS[def.key] || [];
+      if(def.key === 'model') return; // handled separately, depends on brand
+      var values = def.key === 'brand' ? brandOptions() : (FACETS[def.key] || []);
       if(!values.length) return;
       var sel = document.createElement('select');
       sel.dataset.key = def.key;
-      var opt0 = document.createElement('option');
-      opt0.value = ''; opt0.textContent = def.label + ': все';
-      sel.appendChild(opt0);
-      values.forEach(function(v){
-        var o = document.createElement('option');
-        o.value = v; o.textContent = v;
-        sel.appendChild(o);
-      });
+      fillSelect(sel, values, def.label, '');
       sel.addEventListener('change', function(){
         state.filters[def.key] = sel.value;
         state.page = 1;
+        if(def.key === 'brand') refreshModelOptions();
         render();
       });
       el.filters.appendChild(sel);
+      // The model filter sits right after the brand filter.
+      if(def.key === 'brand'){
+        modelSelect = document.createElement('select');
+        modelSelect.dataset.key = 'model';
+        fillSelect(modelSelect, modelValuesFor(''), MODEL_LABEL, '');
+        modelSelect.addEventListener('change', function(){
+          state.filters.model = modelSelect.value;
+          state.page = 1;
+          render();
+        });
+        el.filters.appendChild(modelSelect);
+      }
     });
   }
 
@@ -275,7 +360,15 @@
       if(hay.indexOf(state.q) === -1) return false;
     }
     for(var k in state.filters){
-      if(state.filters[k] && item[k] !== state.filters[k]) return false;
+      var want = state.filters[k];
+      if(!want) continue;
+      // Brand/model may differ only in letter case between sources
+      // ("SIENTA"/"Sienta", "TOYOTA"/"Toyota"): compare case-insensitively.
+      if(k === 'brand' || k === 'model'){
+        if(String(item[k] || '').trim().toLowerCase() !== String(want).trim().toLowerCase()) return false;
+      } else if(item[k] !== want){
+        return false;
+      }
     }
     // Price range. Cars with "цена по запросу" stay visible only when no range is set.
     if(state.priceFrom !== null || state.priceTo !== null){
@@ -422,6 +515,7 @@
     el.search.value = ''; el.priceFrom.value = ''; el.priceTo.value = '';
     hideSuggest(el.suggestFrom); hideSuggest(el.suggestTo);
     el.filters.querySelectorAll('select').forEach(function(s){ s.value = ''; });
+    refreshModelOptions();
     render();
   });
   el.pager.addEventListener('click', function(e){
