@@ -136,7 +136,7 @@
 <script>
 (function(){
   // ==== EDIT THIS: public URL of catalog_data.js ====
-  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@v1/catalog_data.js?v=20261010160715";
+  var DATA_URL = "https://cdn.jsdelivr.net/gh/89501116752/privoz-catalog@v1/catalog_data.js?v=20261011101640";
   // ==================================================
 
   var ITEMS = [], FACETS = {};
@@ -206,7 +206,7 @@
     }
     if(photos.length){ modal.img.style.display = ''; }
 
-    modal.name.textContent = item.brand + ' ' + item.model + (item.trim ? ' — ' + item.trim : '');
+    modal.name.textContent = brandLabel(item.brand) + ' ' + item.model + (item.trim ? ' — ' + item.trim : '');
     if(item.price_type === 'from' && item.price_value){
       modal.price.textContent = fmt(item.price_value) + ' ₽';
       modal.price.className = 'pv-modal__price';
@@ -250,6 +250,7 @@
   var MODEL_LABEL = 'Модель';
   var modelSelect = null;
 
+  // Plain select: value === label (used for every facet except brand/model).
   function fillSelect(sel, values, label, selected){
     sel.innerHTML = '';
     var opt0 = document.createElement('option');
@@ -264,61 +265,138 @@
     sel.value = (selected && values.indexOf(selected) !== -1) ? selected : '';
   }
 
-  function brandOptions(){
-    return dedupeByCase(FACETS.brand || []);
-  }
-
-  // Collapse values that differ only in letter case, keeping the first spelling.
-  function dedupeByCase(values){
-    var seen = {};
-    var out = [];
-    values.forEach(function(v){
-      if(!v) return;
-      var key = String(v).trim().toLowerCase();
-      if(!key || seen[key]) return;
-      seen[key] = 1;
-      out.push(String(v).trim());
+  // Grouped select: option value is a normalized key, text is a display label.
+  function fillGroupedSelect(sel, groups, label, selectedKey){
+    sel.innerHTML = '';
+    var opt0 = document.createElement('option');
+    opt0.value = ''; opt0.textContent = label + ': все';
+    sel.appendChild(opt0);
+    groups.forEach(function(g){
+      var o = document.createElement('option');
+      o.value = g.key; o.textContent = g.label;
+      sel.appendChild(o);
     });
-    out.sort(function(a,b){ return a.localeCompare(b, 'ru'); });
-    return out;
+    var stillThere = groups.some(function(g){ return g.key === selectedKey; });
+    sel.value = stillThere ? selectedKey : '';
+    return stillThere;
   }
 
-  function modelValuesFor(brand){
-    var seen = {};
-    ITEMS.forEach(function(item){
-      var model = (item.model || '').trim();
-      if(!model) return;
-      if(brand && String(item.brand || '').trim().toLowerCase() !== brand.trim().toLowerCase()) return;
-      var key = model.toLowerCase();
-      if(!seen[key]){
-        seen[key] = model;
-      } else if(uppercaseScore(model) < uppercaseScore(seen[key])){
-        // Prefer the nicer spelling ("Sienta" over "SIENTA").
-        seen[key] = model;
-      }
+  // ---- Model / brand name normalization -----------------------------------
+  // A comparison key collapses spelling differences that never change the
+  // model's identity: letter case, different dash characters and spacing.
+  // It deliberately keeps digits and extra words, so "1 Series 120i" stays
+  // distinct from "1 Series", and "3" stays distinct from "3 Series".
+  var DASHES = /[\u2010-\u2015\u2212\u00ad\u002d\u2043\uFE58\uFE63\uFF0D]/g;
+  var DASH_TEST = /[\u2010-\u2015\u2212\u00ad\u002d\u2043\uFE58\uFE63\uFF0D]/;
+
+  function modelKey(s){
+    if(s === null || s === undefined) return '';
+    return String(s)
+      .replace(DASHES, ' ')      // any dash/dash-like char behaves like a space
+      .replace(/[\t\r\n]+/g, ' ')
+      .replace(/\s+/g, ' ')     // collapse runs of spaces
+      .trim()
+      .toLowerCase();
+  }
+
+  // Brand key: same idea, brands are safe to match case/dash-insensitively.
+  function brandKey(s){
+    return modelKey(s);
+  }
+
+  // ---- Display polish (absorbed from the old T123 #2 cleanup script) ------
+  var KNOWN_BRANDS = {
+    audi: 'Audi', bmw: 'BMW', byd: 'BYD', gmc: 'GMC', honda: 'Honda',
+    mazda: 'Mazda', mercedesbenz: 'Mercedes-Benz', mitsubishi: 'Mitsubishi',
+    nissan: 'Nissan', subaru: 'Subaru', suzuki: 'Suzuki', toyota: 'Toyota',
+    volkswagen: 'Volkswagen', vw: 'Volkswagen', lexus: 'Lexus', mini: 'MINI',
+    mg: 'MG'
+  };
+
+  // Nice brand spelling for display (never used for matching).
+  function brandLabel(value){
+    var key = brandKey(value);
+    var compact = key.replace(/[\s.-]/g, '');
+    if(KNOWN_BRANDS[compact]) return KNOWN_BRANDS[compact];
+    return key.replace(/(^|[\s-])([a-zа-яё])/g, function(_, sep, letter){
+      return sep + letter.toUpperCase();
     });
-    var out = Object.keys(seen).map(function(k){ return seen[k]; });
-    out.sort(function(a,b){ return a.localeCompare(b, 'ru'); });
-    return out;
   }
 
-  function uppercaseScore(s){
-    var n = 0;
-    for(var i=0;i<s.length;i++){
-      var c = s.charAt(i);
-      if(c !== c.toLowerCase() && c === c.toUpperCase()) n++;
+  // Uniform transmission wording ("вариатор (CVT)" -> "Вариатор").
+  function transmissionLabel(value){
+    var v = String(value == null ? '' : value).trim().toLowerCase().replace(/\s+/g, ' ');
+    if(/^вариатор(?:\s*\(\s*cvt\s*\))?$/.test(v)) return 'Вариатор';
+    if(/^робот(?:\s*\(\s*ркпп\s*\))?$/.test(v)) return 'Робот';
+    return String(value == null ? '' : value).trim();
+  }
+
+  // Choose the nicest spelling to display for a group of equivalent names.
+  // Priority: proper letter case, no leading/trailing spaces, no stray dashes.
+  // Kept in one place so per-brand special cases can be added later.
+  function scoreDisplayName(name){
+    var s = String(name).trim();
+    if(!s) return -1000;
+    var score = 0;
+    // Prefer "Nice Name" over all-lower or ALL-UPPER spellings.
+    if(s === s.toLowerCase() && /[a-zа-я]/i.test(s) && s.length > 1) score -= 3;
+    if(s === s.toUpperCase() && /[a-zа-я]/i.test(s) && s.length > 1) score -= 2;
+    // Slight preference for the mixed case used by the data.
+    if(s.charAt(0) === s.charAt(0).toUpperCase()) score += 1;
+    // Prefer spellings where more words start with a capital letter
+    // ("2 Series 218d" over "2 series 218d"), the style used by the data.
+    var words = s.split(' ');
+    for(var w=0;w<words.length;w++){
+      if(words[w] && words[w].charAt(0) === words[w].charAt(0).toUpperCase()) score += 1;
     }
-    return n;
+    // Penalize dash used as a word separator (we render it with a space).
+    if(DASH_TEST.test(s)) score -= 1;
+    // Penalize doubled spaces.
+    if(/\s{2,}/.test(s)) score -= 1;
+    return score;
+  }
+
+  function pickDisplayName(group){
+    var best = group[0];
+    var bestScore = scoreDisplayName(best);
+    for(var i=1;i<group.length;i++){
+      var sc = scoreDisplayName(group[i]);
+      if(sc > bestScore || (sc === bestScore && group[i].length < best.length)){
+        best = group[i]; bestScore = sc;
+      }
+    }
+    return best;
+  }
+
+  // Build unique display labels from data, keyed by the normalized model key.
+  // Returns [{ key: '1 series', label: '1 Series' }, ...].
+  function modelGroupsFor(brand){
+    var groups = {};
+    ITEMS.forEach(function(item){
+      var model = String(item.model || '').trim();
+      if(!model) return;
+      if(brand && brandKey(item.brand) !== brandKey(brand)) return;
+      var key = modelKey(model);
+      if(!key) return;
+      if(!groups[key]) groups[key] = [];
+      // remember the original spelling for display selection
+      if(groups[key].indexOf(model) === -1) groups[key].push(model);
+    });
+    var out = Object.keys(groups).map(function(k){
+      return { key: k, label: pickDisplayName(groups[k]) };
+    });
+    out.sort(function(a,b){ return a.label.localeCompare(b.label, 'ru'); });
+    return out;
   }
 
   function refreshModelOptions(){
     if(!modelSelect) return;
     var brand = (state.filters.brand || '').trim();
-    var values = modelValuesFor(brand);
-    var chosen = state.filters.model || '';
-    fillSelect(modelSelect, values, MODEL_LABEL, chosen);
+    var groups = modelGroupsFor(brand);
+    var chosen = state.filters.model || ''; // already a normalized key
+    var kept = fillGroupedSelect(modelSelect, groups, MODEL_LABEL, chosen);
     // Drop a previously chosen model that no longer belongs to the brand.
-    if(chosen && values.indexOf(chosen) === -1){
+    if(chosen && !kept){
       state.filters.model = '';
       modelSelect.value = '';
     }
@@ -327,30 +405,50 @@
   function buildFilters(){
     FACET_DEFS.forEach(function(def){
       if(def.key === 'model') return; // handled separately, depends on brand
-      var values = def.key === 'brand' ? brandOptions() : (FACETS[def.key] || []);
-      if(!values.length) return;
       var sel = document.createElement('select');
       sel.dataset.key = def.key;
-      fillSelect(sel, values, def.label, '');
-      sel.addEventListener('change', function(){
-        state.filters[def.key] = sel.value;
-        state.page = 1;
-        if(def.key === 'brand') refreshModelOptions();
-        render();
-      });
-      el.filters.appendChild(sel);
-      // The model filter sits right after the brand filter.
       if(def.key === 'brand'){
+        // Brand options are grouped/deduplicated by normalized key too.
+        var brandGroups = (FACETS.brand || []).reduce(function(acc, b){
+          var v = String(b || '').trim();
+          if(!v) return acc;
+          var key = brandKey(v);
+          if(!key) return acc;
+          var found = acc.filter(function(g){ return g.key === key; })[0];
+          if(found){ if(found.raw.indexOf(v) === -1) found.raw.push(v); }
+          else acc.push({ key: key, raw: [v] });
+          return acc;
+        }, []).map(function(g){ return { key: g.key, label: brandLabel(g.raw[0]) }; });
+        brandGroups.sort(function(a,b){ return a.label.localeCompare(b.label, 'ru'); });
+        fillGroupedSelect(sel, brandGroups, def.label, '');
+        sel.addEventListener('change', function(){
+          state.filters.brand = sel.value; // normalized brand key
+          state.page = 1;
+          refreshModelOptions();
+          render();
+        });
+        el.filters.appendChild(sel);
+        // The model filter sits right after the brand filter.
         modelSelect = document.createElement('select');
         modelSelect.dataset.key = 'model';
-        fillSelect(modelSelect, modelValuesFor(''), MODEL_LABEL, '');
+        fillGroupedSelect(modelSelect, modelGroupsFor(''), MODEL_LABEL, '');
         modelSelect.addEventListener('change', function(){
-          state.filters.model = modelSelect.value;
+          state.filters.model = modelSelect.value; // normalized model key
           state.page = 1;
           render();
         });
         el.filters.appendChild(modelSelect);
+        return;
       }
+      var values = FACETS[def.key] || [];
+      if(!values.length) return;
+      fillSelect(sel, values, def.label, '');
+      sel.addEventListener('change', function(){
+        state.filters[def.key] = sel.value;
+        state.page = 1;
+        render();
+      });
+      el.filters.appendChild(sel);
     });
   }
 
@@ -362,10 +460,12 @@
     for(var k in state.filters){
       var want = state.filters[k];
       if(!want) continue;
-      // Brand/model may differ only in letter case between sources
-      // ("SIENTA"/"Sienta", "TOYOTA"/"Toyota"): compare case-insensitively.
-      if(k === 'brand' || k === 'model'){
-        if(String(item[k] || '').trim().toLowerCase() !== String(want).trim().toLowerCase()) return false;
+      // Brand/model are compared via their normalized keys, so any spelling
+      // variant ("1-Series"/"1 series", "TOYOTA"/"Toyota") matches.
+      if(k === 'brand'){
+        if(brandKey(item.brand) !== want) return false;
+      } else if(k === 'model'){
+        if(modelKey(item.model) !== want) return false;
       } else if(item[k] !== want){
         return false;
       }
@@ -383,20 +483,21 @@
     var chips = [];
     if(item.year_display) chips.push(item.year_display);
     if(item.engine_type) chips.push(item.engine_type);
-    if(item.transmission) chips.push(item.transmission);
+    var tr = transmissionLabel(item.transmission);
+    if(tr) chips.push(tr);
     if(item.drive) chips.push(item.drive + ' привод');
     if(item.displacement_cc && item.engine_type !== 'Электро') chips.push(item.displacement_cc + ' см³');
     if(item.power_hp) chips.push(item.power_hp + ' л.с.');
     var mileage = String(item.mileage_km || '').replace(/[^0-9]/g, '');
     if(mileage) chips.push(fmt(parseInt(mileage, 10)) + ' км');
-    if(item.export_country) chips.push('Страна: ' + item.export_country);
+    // The export country is shown as the card badge, not as a spec chip.
     return chips;
   }
 
   function card(item){
     var photo;
     if(item.photos && item.photos.length){
-      photo = '<img loading="lazy" src="' + esc(resized(item.photos[0])) + '" alt="' + esc(item.brand + ' ' + item.model) + '">';
+      photo = '<img loading="lazy" src="' + esc(resized(item.photos[0])) + '" alt="' + esc(brandLabel(item.brand) + ' ' + item.model) + '">';
     } else {
       photo = '<div class="pv-noimg">Фото скоро появится</div>';
     }
@@ -404,7 +505,7 @@
       ? '<span class="pv-price-tag">' + fmt(item.price_value) + ' ₽</span>'
       : '<span class="pv-price-tag pv-onrequest">Цена по запросу</span>';
     var chips = specChips(item).map(function(c){ return '<span class="pv-spec">' + esc(c) + '</span>'; }).join('');
-    var name = esc(item.brand + ' ' + item.model);
+    var name = esc(brandLabel(item.brand) + ' ' + item.model);
     var trim = item.trim ? '<p class="pv-trim">' + esc(item.trim) + '</p>' : '';
     var action = '<button class="pv-btn" type="button" data-id="' + esc(item.source_id) + '">Смотреть</button>';
     return '<article class="pv-card" data-id="' + esc(item.source_id) + '">' +
