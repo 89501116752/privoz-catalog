@@ -28,11 +28,15 @@ jobs:
 
           GROUP_ID=$(echo "$GROUP_JSON" | jq -er '.response.groups[0].id')
 
-          CATEGORIES=$(curl -fsS -G \
-            "https://api.vk.com/method/market.getCategories" \
+                    MARKET_JSON=$(curl -fsS -G \
+            "https://api.vk.com/method/market.get" \
             --data-urlencode "owner_id=-$GROUP_ID" \
-            --data-urlencode "count=100" \
+            --data-urlencode "count=1" \
             --data-urlencode "access_token=$VK_ACCESS_TOKEN" \
             --data-urlencode "v=5.199")
 
-          echo "$CATEGORIES" | jq 'if .error then .error else .response end'
+          echo "$MARKET_JSON" | jq 'if .error then .error else .response end'
+
+          if jq -e '.error' <<< "$MARKET_JSON" >/dev/null; then
+            exit 1
+          fi
