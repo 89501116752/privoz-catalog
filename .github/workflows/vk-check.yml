@@ -27,16 +27,16 @@ jobs:
           echo "$GROUP_JSON" | jq .
 
           GROUP_ID=$(echo "$GROUP_JSON" | jq -er '.response.groups[0].id')
-
-                    MARKET_JSON=$(curl -fsS -G \
-            "https://api.vk.com/method/market.get" \
-            --data-urlencode "owner_id=-$GROUP_ID" \
-            --data-urlencode "count=1" \
+          
+          PHOTO_SERVER_JSON=$(curl -fsS -G \
+            "https://api.vk.com/method/market.getProductPhotoUploadServer" \
+            --data-urlencode "group_id=$GROUP_ID" \
             --data-urlencode "access_token=$VK_ACCESS_TOKEN" \
             --data-urlencode "v=5.199")
 
-          echo "$MARKET_JSON" | jq 'if .error then .error else .response end'
+          echo "$PHOTO_SERVER_JSON" | jq .
 
-          if jq -e '.error' <<< "$MARKET_JSON" >/dev/null; then
+          if jq -e '.error' <<< "$PHOTO_SERVER_JSON" >/dev/null; then
             exit 1
           fi
+
