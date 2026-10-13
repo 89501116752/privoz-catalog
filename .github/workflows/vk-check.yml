@@ -26,7 +26,7 @@ jobs:
 
           echo "$GROUP_JSON" | jq .
 
-          GROUP_ID=$(echo "$GROUP_JSON" | jq -er '.response[0].id')
+          GROUP_ID=$(echo "$GROUP_JSON" | jq -er '.response.groups[0].id')
 
           CATEGORIES=$(curl -fsS -G \
             "https://api.vk.com/method/market.getCategories" \
