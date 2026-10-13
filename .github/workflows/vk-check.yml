@@ -24,7 +24,7 @@ jobs:
             --data-urlencode "access_token=$VK_ACCESS_TOKEN" \
             --data-urlencode "v=5.199")
 
-          echo "$GROUP_JSON" | jq 'if .error then .error else .response[0] | {id, name, screen_name} end'
+          echo "$GROUP_JSON" | jq .
 
           GROUP_ID=$(echo "$GROUP_JSON" | jq -er '.response[0].id')
 
