@@ -1,0 +1,37 @@
+
+name: Check VK connection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check VK API
+        env:
+          VK_ACCESS_TOKEN: ${{ secrets.VK_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          GROUP_JSON=$(curl -fsS -G \
+            "https://api.vk.com/method/groups.getById" \
+            --data-urlencode "group_ids=privozauto_official" \
+            --data-urlencode "access_token=$VK_ACCESS_TOKEN" \
+            --data-urlencode "v=5.199")
+
+          echo "$GROUP_JSON" | jq 'if .error then .error else .response[0] | {id, name, screen_name} end'
+
+          GROUP_ID=$(echo "$GROUP_JSON" | jq -er '.response[0].id')
+
+          CATEGORIES=$(curl -fsS -G \
+            "https://api.vk.com/method/market.getCategories" \
+            --data-urlencode "owner_id=-$GROUP_ID" \
+            --data-urlencode "count=100" \
+            --data-urlencode "access_token=$VK_ACCESS_TOKEN" \
+            --data-urlencode "v=5.199")
+
+          echo "$CATEGORIES" | jq 'if .error then .error else .response end'
